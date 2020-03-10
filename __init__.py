@@ -26,7 +26,7 @@ bl_info = {
     "version": (1, 2),
     "blender": (2, 80, 0),
     "location": "View3D > Object > Apply",
-    "description": "Apply All Modifier to Mesh Object",
+    "description": "Apply all modifiers to mesh object respecting shape keys.",
     "warning": "",
     "wiki_url": "",
     "tracker_url": "",
@@ -102,7 +102,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
         #if object has no modifier then skip
         return True
     
-    #make single user
+    # make single user
     if obj_src.data.users != 1:
         obj_src.data = obj_src.data.copy()
     
@@ -227,7 +227,6 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
         objname = obj.name
         
         if is_legacy or self.last_target_obj_name == objname:
-            print(self.last_target_obj_name)
             bpy.ops.object.select_all(action='DESELECT')
             str_targets = []
             for i in range(self.mod_count):

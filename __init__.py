@@ -22,8 +22,8 @@ import bpy
 
 bl_info = {
     "name": "Apply Modifier",
-    "author": "mate.sus304",
-    "version": (1, 1),
+    "author": "mate.sus304, Taremin, SAM-tak",
+    "version": (1, 2),
     "blender": (2, 80, 0),
     "location": "View3D > Object > Apply",
     "description": "Apply All Modifier to Mesh Object",
@@ -185,8 +185,8 @@ def apply_modifier(target_object=None, target_modifiers=None):
 
 class OBJECT_OT_apply_all_modifier(bpy.types.Operator):
     """Apply All Modifier to Selected Mesh Object"""
-    bl_idname = "object.apply_all_modifier"
-    bl_label = "Apply_All_Modifier"
+    bl_idname = "object.apply_all_modifiers"
+    bl_label = "Apply All Modifiers"
     bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
@@ -208,11 +208,13 @@ class OBJECT_OT_apply_all_modifier(bpy.types.Operator):
 class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
     """Apply Selected Modifier to Active Mesh Object"""
     bl_idname = "object.apply_selected_modifier"
-    bl_label = "Apply_Selected_Modifier"
+    bl_label = "Apply Selected Modifier"
     bl_options = {'REGISTER', 'UNDO'}
     
     bv = bpy.props.BoolVectorProperty(name="Booleans", description="test value", size=32)
-    
+
+    last_target_obj_name = None
+    modifier_names = None
     mod_count = 0
     
     @classmethod
@@ -223,16 +225,23 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
     def execute(self, context):
         obj = get_active_object()
         objname = obj.name
-        bpy.ops.object.select_all(action='DESELECT')
         
-        str_targets = []
-        for i in range(self.mod_count):
-            if self.bv[i]:
-                str_targets.append(bpy.data.objects[objname].modifiers[i].name)
-        
-        apply_modifier(target_object=bpy.data.objects[objname], target_modifiers=str_targets)
-        
-        select_object(obj, True)
+        if is_legacy or self.last_target_obj_name == objname:
+            print(self.last_target_obj_name)
+            bpy.ops.object.select_all(action='DESELECT')
+            str_targets = []
+            for i in range(self.mod_count):
+                if self.bv[i]:
+                    str_targets.append(bpy.data.objects[objname].modifiers[i].name)
+            
+            apply_modifier(target_object=bpy.data.objects[objname], target_modifiers=str_targets)
+            
+            select_object(obj, True)
+        else:
+            self.last_target_obj_name = objname
+            self.modifier_names = tuple(i.name for i in bpy.data.objects[objname].modifiers)
+            self.mod_count = len(obj.modifiers)
+            self.bv = tuple(False for i in range(32))
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -241,22 +250,26 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
     
     def draw(self, context):
         obj = context.object
-        self.mod_count = len(obj.modifiers)
         
         layout = self.layout
         col = layout.column()
-        
-        for i in range(self.mod_count):
-            col.prop(self, "bv", text=obj.modifiers[i].name, index=i)
+
+        if is_legacy:
+            self.mod_count = len(obj.modifiers)
+            for i in range(self.mod_count):
+                col.prop(self, "bv", text=obj.modifiers[i].name, index=i)
+        else:
+            for i in range(len(self.modifier_names)):
+                col.prop(self, "bv", text=self.modifier_names[i], index=i)
+
 
 # Registration
 
-def apply_all_modifier_button(self, context):
+def apply_modifier_buttons(self, context):
+    self.layout.separator()
     self.layout.operator(
         OBJECT_OT_apply_all_modifier.bl_idname,
-        text="Apply All Modifier")
-
-def apply_selected_modifier_button(self, context):
+        text="Apply All Modifiers")
     self.layout.operator(
         OBJECT_OT_apply_selected_modifier.bl_idname,
         text="Apply Selected Modifier")
@@ -264,14 +277,12 @@ def apply_selected_modifier_button(self, context):
 def register():
     bpy.utils.register_class(OBJECT_OT_apply_all_modifier)
     bpy.utils.register_class(OBJECT_OT_apply_selected_modifier)
-    bpy.types.VIEW3D_MT_object_apply.append(apply_all_modifier_button)
-    bpy.types.VIEW3D_MT_object_apply.append(apply_selected_modifier_button)
+    bpy.types.VIEW3D_MT_object_apply.append(apply_modifier_buttons)
 
 def unregister():
     bpy.utils.unregister_class(OBJECT_OT_apply_all_modifier)
     bpy.utils.unregister_class(OBJECT_OT_apply_selected_modifier)
-    bpy.types.VIEW3D_MT_object_apply.remove(apply_all_modifier_button)
-    bpy.types.VIEW3D_MT_object_apply.remove(apply_selected_modifier_button)
+    bpy.types.VIEW3D_MT_object_apply.remove(apply_modifier_buttons)
 
 if __name__ == "__main__":
     register()

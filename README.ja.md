@@ -10,6 +10,8 @@
 
 ## 使い方
 
+### インストール
+
 - Release タブから最新版のzipをダウンロードしてください
 
 - Blenderの設定ウィンドウにあるアドオンパネルからInstallボタンを押して、さっきダウンロードしたzipファイルを選びます
@@ -22,11 +24,11 @@
 
 シェイプキーのないオブジェクトに対しては標準の適用と同じ動作をしますので、わざわざこの機能を使う必要はないです。
 
-### Apply all modifires with shape keys
+### Apply all modifiers with shape keys
 
 すべての有効なモディファイアを一度に適用します。
 
-### Apply selected modifire with shape keys
+### Apply selected modifier with shape keys
 
 適用するモディファイアを選択して、シェイプキーを維持しつつ適用します。
 

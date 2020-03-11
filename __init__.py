@@ -1,4 +1,4 @@
-#Copyright (c) 2014 mato.sus304(mato.sus304@gmail.com)
+# Copyright (c) 2014 mato.sus304(mato.sus304@gmail.com)
 #
 # ##### BEGIN GPL LICENSE BLOCK #####
 #
@@ -21,7 +21,7 @@
 import bpy
 
 bl_info = {
-    "name": "Apply Modifier",
+    "name": "Apply Modifier With Shape Keys",
     "author": "mate.sus304, Taremin, SAM-tak",
     "version": (1, 2),
     "blender": (2, 80, 0),
@@ -31,29 +31,19 @@ bl_info = {
     "wiki_url": "",
     "tracker_url": "",
     "website":"https://sites.google.com/site/matosus304blendernotes/home",
-    "category": "Object"}
-
+    "category": "Object"
+}
 
 ######################################################
-is_legacy = (bpy.app.version < (2, 80, 0))
 
 def select_object(obj, value):
-    if is_legacy:
-        obj.select = value
-    else:
-        obj.select_set(value)
+    obj.select_set(value)
 
 def get_active_object():
-    if is_legacy:
-        return bpy.context.scene.objects.active
-    else:
-        return bpy.context.window.view_layer.objects.active
+    return bpy.context.window.view_layer.objects.active
 
 def set_active_object(obj):
-    if is_legacy:
-        bpy.context.scene.objects.active = obj
-    else:
-        bpy.context.window.view_layer.objects.active = obj
+    bpy.context.window.view_layer.objects.active = obj
 
 def clear_shape_keys(Name):
     obj = get_active_object()
@@ -72,10 +62,7 @@ def clone_object(Obj):
     tmp_obj.name = "applymodifier_tmp_%s"%(Obj.name)
     tmp_obj.data = tmp_obj.data.copy()
     tmp_obj.data.name = "applymodifier_tmp_%s"%(Obj.data.name)
-    if is_legacy:
-        bpy.context.scene.objects.link(tmp_obj)
-    else:
-        bpy.context.scene.collection.objects.link(tmp_obj)
+    bpy.context.scene.collection.objects.link(tmp_obj)
     return tmp_obj
 
 def delete_object(Obj):
@@ -83,10 +70,7 @@ def delete_object(Obj):
         Obj.data.user_clear()
     for scn in bpy.data.scenes:
         try:
-            if is_legacy:
-                scn.objects.unlink(Obj)
-            else:
-                scn.collection.objects.unlink(Obj)
+            scn.collection.objects.unlink(Obj)
         except:
             pass
 
@@ -99,7 +83,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
         obj_src = target_object
 
     if not obj_src.modifiers:
-        #if object has no modifier then skip
+        # if object has no modifier then skip
         return True
     
     # make single user
@@ -107,7 +91,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
         obj_src.data = obj_src.data.copy()
     
     if obj_src.data.shape_keys is None:
-        #if object has no shapekeys, just apply modifier
+        # if object has no shapekeys, just apply modifier
         for x in obj_src.modifiers:
             try:
                 bpy.ops.object.modifier_apply(modifier=x.name)
@@ -183,7 +167,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
     delete_object(obj_fin)
     set_active_object(obj_src)
 
-class OBJECT_OT_apply_all_modifier(bpy.types.Operator):
+class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
     """Apply All Modifier to Selected Mesh Object"""
     bl_idname = "object.apply_all_modifiers"
     bl_label = "Apply All Modifiers"
@@ -202,7 +186,6 @@ class OBJECT_OT_apply_all_modifier(bpy.types.Operator):
             select_object(bpy.data.objects[x], True)
         
         return {'FINISHED'}
-    
 
 
 class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
@@ -211,11 +194,9 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
     bl_label = "Apply Selected Modifier"
     bl_options = {'REGISTER', 'UNDO'}
     
-    bv = bpy.props.BoolVectorProperty(name="Booleans", description="test value", size=32)
+    flags : bpy.props.BoolVectorProperty(name="Targets", description="Flags for applyee modifiers", size=32)
 
-    last_target_obj_name = None
     modifier_names = None
-    mod_count = 0
     
     @classmethod
     def poll(cls, context):
@@ -226,21 +207,19 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
         obj = get_active_object()
         objname = obj.name
         
-        if is_legacy or self.last_target_obj_name == objname:
+        if self.modifier_names and len(self.modifier_names) > 0:
             bpy.ops.object.select_all(action='DESELECT')
             str_targets = []
-            for i in range(self.mod_count):
-                if self.bv[i]:
+            for i in range(len(self.modifier_names)):
+                if self.flags[i]:
                     str_targets.append(bpy.data.objects[objname].modifiers[i].name)
             
             apply_modifier(target_object=bpy.data.objects[objname], target_modifiers=str_targets)
             
             select_object(obj, True)
         else:
-            self.last_target_obj_name = objname
             self.modifier_names = tuple(i.name for i in bpy.data.objects[objname].modifiers)
-            self.mod_count = len(obj.modifiers)
-            self.bv = tuple(False for i in range(32))
+            self.flags = tuple(False for i in range(32))
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -253,13 +232,8 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
         layout = self.layout
         col = layout.column()
 
-        if is_legacy:
-            self.mod_count = len(obj.modifiers)
-            for i in range(self.mod_count):
-                col.prop(self, "bv", text=obj.modifiers[i].name, index=i)
-        else:
-            for i in range(len(self.modifier_names)):
-                col.prop(self, "bv", text=self.modifier_names[i], index=i)
+        for i in range(len(self.modifier_names)):
+            col.prop(self, "flags", text=self.modifier_names[i], index=i)
 
 
 # Registration
@@ -267,19 +241,19 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
 def apply_modifier_buttons(self, context):
     self.layout.separator()
     self.layout.operator(
-        OBJECT_OT_apply_all_modifier.bl_idname,
-        text="Apply All Modifiers")
+        OBJECT_OT_apply_all_modifiers.bl_idname,
+        text="Apply All Modifiers With Shape Keys")
     self.layout.operator(
         OBJECT_OT_apply_selected_modifier.bl_idname,
-        text="Apply Selected Modifier")
+        text="Apply Selected Modifier With Shape Keys")
 
 def register():
-    bpy.utils.register_class(OBJECT_OT_apply_all_modifier)
+    bpy.utils.register_class(OBJECT_OT_apply_all_modifiers)
     bpy.utils.register_class(OBJECT_OT_apply_selected_modifier)
     bpy.types.VIEW3D_MT_object_apply.append(apply_modifier_buttons)
 
 def unregister():
-    bpy.utils.unregister_class(OBJECT_OT_apply_all_modifier)
+    bpy.utils.unregister_class(OBJECT_OT_apply_all_modifiers)
     bpy.utils.unregister_class(OBJECT_OT_apply_selected_modifier)
     bpy.types.VIEW3D_MT_object_apply.remove(apply_modifier_buttons)
 

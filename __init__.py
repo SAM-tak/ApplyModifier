@@ -36,17 +36,8 @@ bl_info = {
 
 ######################################################
 
-def select_object(obj, value):
-    obj.select_set(value)
-
-def get_active_object():
-    return bpy.context.window.view_layer.objects.active
-
-def set_active_object(obj):
-    bpy.context.window.view_layer.objects.active = obj
-
 def clear_shape_keys(Name):
-    obj = get_active_object()
+    obj = bpy.context.window.view_layer.objects.active
     if obj.data.shape_keys is None:
         return True
     obj.active_shape_key_index = len(obj.data.shape_keys.key_blocks) - 1
@@ -78,11 +69,17 @@ def delete_object(Obj):
 
 def apply_modifier(target_object=None, target_modifiers=None):
     if target_object is None:
-        obj_src = get_active_object()
+        obj_src = bpy.context.window.view_layer.objects.active
     else:
         obj_src = target_object
 
-    if not obj_src.modifiers:
+    if target_modifiers is None:
+        target_modifiers = []
+        for x in obj_src.modifiers:
+            if x.show_viewport:
+                target_modifiers.append(x.name)
+    
+    if len(target_modifiers) == 0:
         # if object has no modifier then skip
         return True
     
@@ -92,23 +89,17 @@ def apply_modifier(target_object=None, target_modifiers=None):
     
     if obj_src.data.shape_keys is None:
         # if object has no shapekeys, just apply modifier
-        for x in obj_src.modifiers:
+        for x in target_modifiers:
             try:
-                bpy.ops.object.modifier_apply(modifier=x.name)
+                bpy.ops.object.modifier_apply(modifier=x)
             except RuntimeError:
                 pass
         return True
     
     obj_fin = clone_object(obj_src)
     
-    set_active_object(obj_fin)
+    bpy.context.window.view_layer.objects.active = obj_fin
     clear_shape_keys('Basis')
-    
-    if target_modifiers is None:
-        target_modifiers = []
-        for x in obj_fin.modifiers:
-            if x.show_viewport:
-                target_modifiers.append(x.name)
     
     for x in target_modifiers:
         try:
@@ -123,7 +114,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
         tmp_name = obj_src.data.shape_keys.key_blocks[i].name
         obj_tmp = clone_object(obj_src)
         
-        set_active_object(obj_tmp)
+        bpy.context.window.view_layer.objects.active = obj_tmp
         clear_shape_keys(tmp_name)
         
         for x in target_modifiers:
@@ -132,8 +123,10 @@ def apply_modifier(target_object=None, target_modifiers=None):
             except RuntimeError:
                 pass
         
-        select_object(obj_tmp, True)
-        set_active_object(obj_fin)
+        obj_tmp.modifiers.clear()
+
+        obj_tmp.select_set(True)
+        bpy.context.window.view_layer.objects.active = obj_fin
         try:
             bpy.ops.object.join_shapes()
             obj_fin.data.shape_keys.key_blocks[-1].name = tmp_name
@@ -152,20 +145,19 @@ def apply_modifier(target_object=None, target_modifiers=None):
         bpy.context.window_manager.popup_menu(draw, title="Error", icon='INFO')
         
         return False
-        
+    
     tmp_name = obj_src.name
     tmp_data_name = obj_src.data.name
     obj_fin.name = tmp_name + '.tmp'
-    
     
     obj_src.data = obj_fin.data
     obj_src.data.name = tmp_data_name
     
     for x in target_modifiers:
         obj_src.modifiers.remove(obj_src.modifiers[x])
-            
+
     delete_object(obj_fin)
-    set_active_object(obj_src)
+    bpy.context.window.view_layer.objects.active = obj_src
 
 class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
     """Apply All Modifier to Selected Mesh Object"""
@@ -183,7 +175,7 @@ class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
             apply_modifier(target_object=bpy.data.objects[x])
         
         for x in targets:
-            select_object(bpy.data.objects[x], True)
+            bpy.data.objects[x].select_set(True)
         
         return {'FINISHED'}
 
@@ -204,21 +196,20 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
         return obj and obj.type == 'MESH'
     
     def execute(self, context):
-        obj = get_active_object()
-        objname = obj.name
+        obj = bpy.context.window.view_layer.objects.active
         
         if self.modifier_names and len(self.modifier_names) > 0:
             bpy.ops.object.select_all(action='DESELECT')
             str_targets = []
             for i in range(len(self.modifier_names)):
-                if self.flags[i]:
-                    str_targets.append(bpy.data.objects[objname].modifiers[i].name)
+                if self.flags[i] and obj.modifiers[self.modifier_names[i]]:
+                    str_targets.append(self.modifier_names[i])
             
-            apply_modifier(target_object=bpy.data.objects[objname], target_modifiers=str_targets)
+            apply_modifier(target_object=obj, target_modifiers=str_targets)
             
-            select_object(obj, True)
+            obj.select_set(True)
         else:
-            self.modifier_names = tuple(i.name for i in bpy.data.objects[objname].modifiers)
+            self.modifier_names = tuple(i.name for i in obj.modifiers)
             self.flags = tuple(False for i in range(32))
         return {'FINISHED'}
     

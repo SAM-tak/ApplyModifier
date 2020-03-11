@@ -28,11 +28,11 @@ If mesh has no shape key, this addon works same as default function. No advantag
 
 ### Apply all modifiers with shape keys
 
-You can apply all modifiers with one click.
+You can apply all modifiers for all selected objects with one click.
 
 ### Apply selected modifier with shape keys
 
-You can apply specified modifier with respecting shape key this function.
+You can apply specified modifier with respecting shape key for active object.
 
 ### Limitation
 

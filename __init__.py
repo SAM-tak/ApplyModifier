@@ -23,7 +23,7 @@ import bpy
 bl_info = {
     "name": "Apply Modifier With Shape Keys",
     "author": "mate.sus304, Taremin, SAM-tak",
-    "version": (1, 2),
+    "version": (1, 2, 1),
     "blender": (2, 80, 0),
     "location": "View3D > Object > Apply",
     "description": "Apply all modifiers to mesh object respecting shape keys.",

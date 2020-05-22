@@ -38,7 +38,7 @@ You can apply specified modifier with respecting shape key for active object.
 
 This addon behave to clone mesh object each shape keys, and apply modifiers each clone, and reconstruct shape keys.
 
-Then, if modifier changes vertex count and coresponding vertex in shape key is unknown, this addon just skip reconstruction applicable shape key.
+Then, if modifier changes vertex count and coresponding vertex in shape key is unknown, this addon just skip reconstruction of applicable shape key.
 
 In this case, result will have wrong shape key.
 

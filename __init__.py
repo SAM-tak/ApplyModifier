@@ -65,6 +65,21 @@ def delete_object(Obj):
         except:
             pass
 
+def copy_attributes(a, b):
+    keys = dir(a)
+    for key in keys:
+        if not key.startswith("_") \
+        and not key.startswith("error_") \
+        and key != "group" \
+        and key != "strips" \
+        and key != "is_valid" \
+        and key != "rna_type" \
+        and key != "bl_rna":
+            try:
+                setattr(b, key, getattr(a, key))
+            except AttributeError:
+                pass
+
 ######################################################
 
 def apply_modifier(target_object=None, target_modifiers=None):
@@ -146,6 +161,31 @@ def apply_modifier(target_object=None, target_modifiers=None):
         
         return False
     
+    # Copy shape key drivers
+    if obj_src.data.shape_keys.animation_data:
+        for d1 in obj_src.data.shape_keys.animation_data.drivers:
+            d2 = obj_fin.data.shape_keys.driver_add(d1.data_path)
+            copy_attributes(d1, d2)
+            copy_attributes(d1.driver, d2.driver)
+
+            # Remove default modifiers, variables, etc.
+            for m in d2.modifiers:
+                d2.modifiers.remove(m)
+            for v in d2.driver.variables:
+                d2.driver.variables.remove(v)
+
+            # Copy modifiers
+            for m1 in d1.modifiers:
+                m2 = d2.modifiers.new(type=m1.type)
+                copy_attributes(m1, m2)
+
+            # Copy variables
+            for v1 in d1.driver.variables:
+                v2 = d2.driver.variables.new()
+                copy_attributes(v1, v2)
+                for i in range(len(v1.targets)):
+                    copy_attributes(v1.targets[i], v2.targets[i])
+
     tmp_name = obj_src.name
     tmp_data_name = obj_src.data.name
     obj_fin.name = tmp_name + '.tmp'
@@ -159,10 +199,11 @@ def apply_modifier(target_object=None, target_modifiers=None):
     delete_object(obj_fin)
     bpy.context.window.view_layer.objects.active = obj_src
 
+
 class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
     """Apply All Modifier to Selected Mesh Object"""
     bl_idname = "object.apply_all_modifiers"
-    bl_label = "Apply All Modifiers"
+    bl_label = "Apply All Modifiers With Shape Keys"
     bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
@@ -183,7 +224,7 @@ class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
 class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
     """Apply Selected Modifier to Active Mesh Object"""
     bl_idname = "object.apply_selected_modifier"
-    bl_label = "Apply Selected Modifier"
+    bl_label = "Apply Selected Modifier With Shape Keys"
     bl_options = {'REGISTER', 'UNDO'}
     
     flags : bpy.props.BoolVectorProperty(name="Targets", description="Flags for applyee modifiers", size=32)

@@ -151,16 +151,6 @@ def apply_modifier(target_object=None, target_modifiers=None):
             
         delete_object(obj_tmp)
     
-    if flag_on_error:
-        def draw(self, context):
-            self.layout.label("Vertex Count Disagreement! Some shapekeys skipped.")
-            for s in list_skipped:
-                self.layout.label(s)
-
-        bpy.context.window_manager.popup_menu(draw, title="Error", icon='INFO')
-        
-        return False
-    
     # Copy shape key drivers
     if obj_src.data.shape_keys.animation_data:
         for d1 in obj_src.data.shape_keys.animation_data.drivers:
@@ -201,6 +191,15 @@ def apply_modifier(target_object=None, target_modifiers=None):
 
     delete_object(obj_fin)
     bpy.context.window.view_layer.objects.active = obj_src
+    
+    if flag_on_error:
+        def draw(self, context):
+            self.layout.label(text="Vertex Count Disagreement! Some shapekeys skipped.")
+            for s in list_skipped:
+                self.layout.label(text=s)
+
+        bpy.context.window_manager.popup_menu(draw, title="Error", icon='INFO')
+        return False
 
 
 class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):

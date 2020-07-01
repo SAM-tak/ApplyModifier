@@ -152,7 +152,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
         delete_object(obj_tmp)
     
     # Copy shape key drivers
-    if obj_src.data.shape_keys.animation_data:
+    if obj_src.data.shape_keys.animation_data and obj_fin.data.shape_keys:
         for d1 in obj_src.data.shape_keys.animation_data.drivers:
             try:
                 d2 = obj_fin.data.shape_keys.driver_add(d1.data_path)

@@ -18,7 +18,7 @@
 
 - アドオン一覧に'Apply Modifiers With Shape Keys'が追加されるので、有効にします
 
-- メニューの *Object > Apply* の中に 'Apply all modifiers' 'Apply selected modifiers' の２つが追加されます
+- メニューの *Object > Apply* の中に 'Apply All Modifiers With Shape Keys' 'Apply Selected Modifiers With Shape Keys' 'Apply Pose As Rest Pose With Shape Keys' の３つが追加されます
 
 モディファイアを適用したいオブジェクトを選択状態にした上で上記のメニューを実行すると、シェイプキーをなるべく維持したままモディファイアを適用できます。
 

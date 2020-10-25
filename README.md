@@ -18,7 +18,7 @@ Updated to support Blender 2.80 or higher from founder [mato.sus304](https://sit
 
 - Enable 'Apply Modifiers With Shape Keys' addon.
 
-Then, added 'Apply all modifiers' and 'Apply selected modifier' menu items into *Object > Apply* menu.
+Then, added 'Apply All Modifiers With Shape Keys' 'Apply Selected Modifiers With Shape Keys' 'Apply Pose As Rest Pose With Shape Keys' menu items into *Object > Apply* menu.
 
 Select mesh object, and choose added menu item from *Object > Apply* (Ctrl + A) menu.
 

@@ -12,7 +12,7 @@ Updated to support Blender 2.80 or higher from founder [mato.sus304](https://sit
 
 ### Install
 
-- Download zip archive from Release tab of github site.
+- Download zip archive from [Release page](../../releases) of github site.
 
 - Press install button on addon panel of blender's preference window and choose just downloaded zip file.
 

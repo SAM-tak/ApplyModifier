@@ -24,7 +24,7 @@ Select mesh object, and choose added menu item from *Object > Apply* (Ctrl + A) 
 
 Blender's default apply function can't apply mirror modifier if mesh has shape keys, but this addon can apply in theese cases.
 
-If mesh has no shape key, this addon works same as default function. No advantage for no shape key mesh object.
+If mesh has no shape key, this addon works same as default function.
 
 ### Apply all modifiers with shape keys
 
@@ -32,7 +32,11 @@ You can apply all modifiers for all selected objects with one click.
 
 ### Apply selected modifier with shape keys
 
-You can apply specified modifier with respecting shape key for active object.
+You can apply specified modifier with respecting shape keys for active object.
+
+### Apply pose as rest pose with shape keys
+
+You can apply armature modifiers for meshes referencing selected armature object in current view layer with respecting shape keys, and apply current pose as rest pose for selected armature object.
 
 ### Limitation
 

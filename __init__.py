@@ -104,6 +104,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
     
     if obj_src.data.shape_keys is None:
         # if object has no shapekeys, just apply modifier
+        bpy.context.window.view_layer.objects.active = obj_src
         for x in target_modifiers:
             try:
                 bpy.ops.object.modifier_apply(modifier=x)
@@ -208,7 +209,13 @@ class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
     bl_label = "Apply All Modifiers With Shape Keys"
     bl_options = {'REGISTER', 'UNDO'}
     
+    @classmethod
+    def poll(cls, context):
+        return any([len(i.modifiers) > 0 for i in bpy.context.selected_objects])
+
     def execute(self, context):
+        prev_active = bpy.context.window.view_layer.objects.active
+
         targets = []
         for x in bpy.context.selected_objects:
             targets.append(x.name)
@@ -220,6 +227,7 @@ class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
         for x in targets:
             bpy.data.objects[x].select_set(True)
         
+        bpy.context.window.view_layer.objects.active = prev_active
         return {'FINISHED'}
 
 
@@ -239,7 +247,7 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
         return obj and obj.type == 'MESH'
     
     def execute(self, context):
-        obj = bpy.context.window.view_layer.objects.active
+        obj = context.window.view_layer.objects.active
         
         if self.modifier_names and len(self.modifier_names) > 0:
             bpy.ops.object.select_all(action='DESELECT')
@@ -270,6 +278,53 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
             col.prop(self, "flags", text=self.modifier_names[i], index=i)
 
 
+class OBJECT_OT_apply_pose_as_rest_pose(bpy.types.Operator):
+    """Apply Armature Modifier to Selected Mesh Object and Apply Pose As Rest Pose to Armature"""
+    bl_idname = "object.apply_pose_as_rest_pose"
+    bl_label = "Apply Armature Modifier With Shape Keys And Apply Current Pose As Rest Pose"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return any([i.type == 'ARMATURE' for i in context.selected_objects])
+
+    def execute(self, context):
+        targets = [i for i in context.selected_objects if i.type == 'ARMATURE']
+        
+        prev_active = context.window.view_layer.objects.active
+
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj_src in [i for i in context.window.view_layer.objects if i.type == 'MESH']:
+            target_modifiers = [x.name for x in obj_src.modifiers if x.type == 'ARMATURE' and x.object in targets]
+            if len(target_modifiers) > 0:
+                context.window.view_layer.objects.active = obj_src
+
+                for x in target_modifiers:
+                    bpy.ops.object.modifier_copy(modifier=x)
+
+                duped_modifiers = []
+                for i in range(len(obj_src.modifiers)):
+                    x = obj_src.modifiers[i]
+                    if x.name in target_modifiers:
+                        duped_modifiers.append(obj_src.modifiers[i+1].name)
+
+                apply_modifier(target_object=obj_src, target_modifiers=target_modifiers)
+
+                for x in obj_src.modifiers:
+                    if x.name in duped_modifiers:
+                        x.name = target_modifiers[duped_modifiers.index(x.name)]
+        
+        for x in targets:
+            context.window.view_layer.objects.active = x
+            bpy.ops.object.mode_set(mode='POSE')
+            bpy.ops.pose.armature_apply(selected=False)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            x.select_set(True)
+        
+        context.window.view_layer.objects.active = prev_active
+        return {'FINISHED'}
+
+
 # Registration
 
 def apply_modifier_buttons(self, context):
@@ -280,15 +335,20 @@ def apply_modifier_buttons(self, context):
     self.layout.operator(
         OBJECT_OT_apply_selected_modifier.bl_idname,
         text="Apply Selected Modifier With Shape Keys")
+    self.layout.operator(
+        OBJECT_OT_apply_pose_as_rest_pose.bl_idname,
+        text="Apply Pose As Rest Pose With Shape Keys")
 
 def register():
     bpy.utils.register_class(OBJECT_OT_apply_all_modifiers)
     bpy.utils.register_class(OBJECT_OT_apply_selected_modifier)
+    bpy.utils.register_class(OBJECT_OT_apply_pose_as_rest_pose)
     bpy.types.VIEW3D_MT_object_apply.append(apply_modifier_buttons)
 
 def unregister():
     bpy.utils.unregister_class(OBJECT_OT_apply_all_modifiers)
     bpy.utils.unregister_class(OBJECT_OT_apply_selected_modifier)
+    bpy.utils.unregister_class(OBJECT_OT_apply_pose_as_rest_pose)
     bpy.types.VIEW3D_MT_object_apply.remove(apply_modifier_buttons)
 
 if __name__ == "__main__":

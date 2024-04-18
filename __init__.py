@@ -41,7 +41,7 @@ def clear_shape_keys(obj, last_remain_shape_key_name):
     if obj.data.shape_keys is None:
         return True
     for shape_key in obj.data.shape_keys.key_blocks:
-        if shape_key != last_remain_shape_key_name:
+        if shape_key.name != last_remain_shape_key_name:
             obj.shape_key_remove(shape_key)
     if obj.data.shape_keys and len(obj.data.shape_keys.key_blocks) > 0:
         obj.shape_key_remove(obj.data.shape_keys.key_blocks[0])
@@ -100,7 +100,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
     if obj_src.data.users != 1:
         obj_src.data = obj_src.data.copy()
     
-    if obj_src.data.shape_keys is None:
+    if obj_src.data.shape_keys is None or len(obj_src.data.shape_keys.key_blocks) == 0:
         # if object has no shapekeys, just apply modifier
         bpy.context.window.view_layer.objects.active = obj_src
         for x in target_modifiers:
@@ -113,7 +113,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
     obj_fin = clone_object(obj_src)
     
     bpy.context.window.view_layer.objects.active = obj_fin
-    clear_shape_keys(obj_fin, 'Basis')
+    clear_shape_keys(obj_fin, obj_src.data.shape_keys.key_blocks[0].name)
     
     for x in target_modifiers:
         try:

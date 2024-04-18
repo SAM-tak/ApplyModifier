@@ -19,6 +19,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
+from time import perf_counter as pc
 
 bl_info = {
     "name": "Apply Modifier With Shape Keys",
@@ -36,32 +37,29 @@ bl_info = {
 
 ######################################################
 
-def clear_shape_keys(Name):
-    obj = bpy.context.window.view_layer.objects.active
+def clear_shape_keys(obj, last_remain_shape_key_name):
     if obj.data.shape_keys is None:
         return True
-    obj.active_shape_key_index = len(obj.data.shape_keys.key_blocks) - 1
-    while len(obj.data.shape_keys.key_blocks) > 1:
-        if obj.data.shape_keys.key_blocks[obj.active_shape_key_index].name == Name:
-            obj.active_shape_key_index = 0
-        else:
-            bpy.ops.object.shape_key_remove()
-    bpy.ops.object.shape_key_remove()
+    for shape_key in obj.data.shape_keys.key_blocks:
+        if shape_key != last_remain_shape_key_name:
+            obj.shape_key_remove(shape_key)
+    if obj.data.shape_keys and len(obj.data.shape_keys.key_blocks) > 0:
+        obj.shape_key_remove(obj.data.shape_keys.key_blocks[0])
 
-def clone_object(Obj):
-    tmp_obj = Obj.copy()
-    tmp_obj.name = "applymodifier_tmp_%s"%(Obj.name)
+def clone_object(obj):
+    tmp_obj = obj.copy()
+    tmp_obj.name = f"applymodifier_tmp_{obj.name}"
     tmp_obj.data = tmp_obj.data.copy()
-    tmp_obj.data.name = "applymodifier_tmp_%s"%(Obj.data.name)
+    tmp_obj.data.name = f"applymodifier_tmp_{obj.data.name}"
     bpy.context.scene.collection.objects.link(tmp_obj)
     return tmp_obj
 
-def delete_object(Obj):
-    if Obj.data.users == 1:
-        Obj.data.user_clear()
+def delete_object(obj):
+    if obj.data.users == 1:
+        obj.data.user_clear()
     for scn in bpy.data.scenes:
         try:
-            scn.collection.objects.unlink(Obj)
+            scn.collection.objects.unlink(obj)
         except:
             pass
 
@@ -115,7 +113,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
     obj_fin = clone_object(obj_src)
     
     bpy.context.window.view_layer.objects.active = obj_fin
-    clear_shape_keys('Basis')
+    clear_shape_keys(obj_fin, 'Basis')
     
     for x in target_modifiers:
         try:
@@ -127,11 +125,13 @@ def apply_modifier(target_object=None, target_modifiers=None):
     list_skipped = []
     
     for i in range(1, len(obj_src.data.shape_keys.key_blocks)):
-        tmp_name = obj_src.data.shape_keys.key_blocks[i].name
+        st = pc()
+        shape_key = obj_src.data.shape_keys.key_blocks[i]
+        tmp_name = shape_key.name
         obj_tmp = clone_object(obj_src)
         
         bpy.context.window.view_layer.objects.active = obj_tmp
-        clear_shape_keys(tmp_name)
+        clear_shape_keys(obj_tmp, tmp_name)
         
         for x in target_modifiers:
             try:
@@ -149,9 +149,10 @@ def apply_modifier(target_object=None, target_modifiers=None):
         except:
             flag_on_error = True
             list_skipped.append(tmp_name)
-            
+
         delete_object(obj_tmp)
-    
+        print(f"{i} / {len(obj_src.data.shape_keys.key_blocks) - 1} done {tmp_name} : {pc()-st}")
+
     # Copy shape key drivers
     if obj_src.data.shape_keys.animation_data and obj_fin.data.shape_keys:
         for d1 in obj_src.data.shape_keys.animation_data.drivers:
@@ -203,7 +204,7 @@ def apply_modifier(target_object=None, target_modifiers=None):
         return False
 
 
-class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
+class AMWSK_OT_apply_all_modifiers(bpy.types.Operator):
     """Apply All Modifier to Selected Mesh Object"""
     bl_idname = "object.apply_all_modifiers"
     bl_label = "Apply All Modifiers With Shape Keys"
@@ -231,12 +232,12 @@ class OBJECT_OT_apply_all_modifiers(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
+class AMWSK_OT_apply_selected_modifier(bpy.types.Operator):
     """Apply Selected Modifier to Active Mesh Object"""
     bl_idname = "object.apply_selected_modifier"
     bl_label = "Apply Selected Modifier With Shape Keys"
     bl_options = {'REGISTER', 'UNDO'}
-    
+
     flags : bpy.props.BoolVectorProperty(name="Targets", description="Flags for applyee modifiers", size=32)
 
     modifier_names = None
@@ -278,7 +279,7 @@ class OBJECT_OT_apply_selected_modifier(bpy.types.Operator):
             col.prop(self, "flags", text=self.modifier_names[i], index=i)
 
 
-class OBJECT_OT_apply_pose_as_rest_pose(bpy.types.Operator):
+class AMWSK_OT_apply_pose_as_rest_pose(bpy.types.Operator):
     """Apply Armature Modifier to Selected Mesh Object and Apply Pose As Rest Pose to Armature"""
     bl_idname = "object.apply_pose_as_rest_pose"
     bl_label = "Apply Armature Modifier With Shape Keys And Apply Current Pose As Rest Pose"
@@ -330,25 +331,25 @@ class OBJECT_OT_apply_pose_as_rest_pose(bpy.types.Operator):
 def apply_modifier_buttons(self, context):
     self.layout.separator()
     self.layout.operator(
-        OBJECT_OT_apply_all_modifiers.bl_idname,
+        AMWSK_OT_apply_all_modifiers.bl_idname,
         text="Apply All Modifiers With Shape Keys")
     self.layout.operator(
-        OBJECT_OT_apply_selected_modifier.bl_idname,
+        AMWSK_OT_apply_selected_modifier.bl_idname,
         text="Apply Selected Modifier With Shape Keys")
     self.layout.operator(
-        OBJECT_OT_apply_pose_as_rest_pose.bl_idname,
+        AMWSK_OT_apply_pose_as_rest_pose.bl_idname,
         text="Apply Pose As Rest Pose With Shape Keys")
 
 def register():
-    bpy.utils.register_class(OBJECT_OT_apply_all_modifiers)
-    bpy.utils.register_class(OBJECT_OT_apply_selected_modifier)
-    bpy.utils.register_class(OBJECT_OT_apply_pose_as_rest_pose)
+    bpy.utils.register_class(AMWSK_OT_apply_all_modifiers)
+    bpy.utils.register_class(AMWSK_OT_apply_selected_modifier)
+    bpy.utils.register_class(AMWSK_OT_apply_pose_as_rest_pose)
     bpy.types.VIEW3D_MT_object_apply.append(apply_modifier_buttons)
 
 def unregister():
-    bpy.utils.unregister_class(OBJECT_OT_apply_all_modifiers)
-    bpy.utils.unregister_class(OBJECT_OT_apply_selected_modifier)
-    bpy.utils.unregister_class(OBJECT_OT_apply_pose_as_rest_pose)
+    bpy.utils.unregister_class(AMWSK_OT_apply_all_modifiers)
+    bpy.utils.unregister_class(AMWSK_OT_apply_selected_modifier)
+    bpy.utils.unregister_class(AMWSK_OT_apply_pose_as_rest_pose)
     bpy.types.VIEW3D_MT_object_apply.remove(apply_modifier_buttons)
 
 if __name__ == "__main__":

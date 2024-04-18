@@ -184,16 +184,16 @@ def apply_modifier(target_object=None, target_modifiers=None):
     tmp_name = obj_src.name
     tmp_data_name = obj_src.data.name
     obj_fin.name = tmp_name + '.tmp'
-    
+
     obj_src.data = obj_fin.data
     obj_src.data.name = tmp_data_name
-    
+
     for x in target_modifiers:
         obj_src.modifiers.remove(obj_src.modifiers[x])
 
     delete_object(obj_fin)
     bpy.context.window.view_layer.objects.active = obj_src
-    
+
     if flag_on_error:
         def draw(self, context):
             self.layout.label(text="Vertex Count Disagreement! Some shapekeys skipped.")
@@ -206,10 +206,10 @@ def apply_modifier(target_object=None, target_modifiers=None):
 
 class AMWSK_OT_apply_all_modifiers(bpy.types.Operator):
     """Apply All Modifier to Selected Mesh Object"""
-    bl_idname = "object.apply_all_modifiers"
+    bl_idname = "amwsk.apply_all_modifiers"
     bl_label = "Apply All Modifiers With Shape Keys"
     bl_options = {'REGISTER', 'UNDO'}
-    
+
     @classmethod
     def poll(cls, context):
         return any([len(i.modifiers) > 0 for i in bpy.context.selected_objects])
@@ -234,7 +234,7 @@ class AMWSK_OT_apply_all_modifiers(bpy.types.Operator):
 
 class AMWSK_OT_apply_selected_modifier(bpy.types.Operator):
     """Apply Selected Modifier to Active Mesh Object"""
-    bl_idname = "object.apply_selected_modifier"
+    bl_idname = "amwsk.apply_selected_modifier"
     bl_label = "Apply Selected Modifier With Shape Keys"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -281,7 +281,7 @@ class AMWSK_OT_apply_selected_modifier(bpy.types.Operator):
 
 class AMWSK_OT_apply_pose_as_rest_pose(bpy.types.Operator):
     """Apply Armature Modifier to Selected Mesh Object and Apply Pose As Rest Pose to Armature"""
-    bl_idname = "object.apply_pose_as_rest_pose"
+    bl_idname = "amwsk.apply_pose_as_rest_pose"
     bl_label = "Apply Armature Modifier With Shape Keys And Apply Current Pose As Rest Pose"
     bl_options = {'REGISTER', 'UNDO'}
 
